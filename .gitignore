@@ -1,0 +1,59 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django stuff
+db.sqlite3
+/media/
+staticfiles/
+*.log
+
+# Environment files
+.env
+.env.local
+.venv/
+venv/
+env/
+ENV/
+
+# VSCode, PyCharm, and IDE configs
+.vscode/
+.idea/
+
+# Migrations (optional — keep if you want to version them)
+# ** Uncomment below if you don’t want migrations in git **
+# */migrations/
+# !*/migrations/__init__.py
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Python packaging
+*.egg
+*.egg-info/
+build/
+dist/
+
+# Pip installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Temporary files
+*.bak
+*.swp
+*.swo
