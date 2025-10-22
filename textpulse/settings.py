@@ -22,12 +22,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-8ijbb3d^%hex4nldkp$cfw(ou6g-_hob0jwc6cqcvrd7s8ly4*'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", os.getenv("RAILWAY_STATIC_URL", ""), os.getenv("RAILWAY_DOMAIN", "")]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "textpulse-production.up.railway.app"]
 
 # Application definition
 
