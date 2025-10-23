@@ -67,7 +67,7 @@ def create_string(request):
 @api_view(['GET'])
 def get_string(request, string_value):
     try:
-        record = StringRecord.objects.get(value=string_value)
+        record = StringRecord.objects.get(value=string_value.lower())
     except StringRecord.DoesNotExist:
         return Response({"error": "String not found"}, status=status.HTTP_404_NOT_FOUND)
     
@@ -243,7 +243,7 @@ def filter_by_natural_language(request):
 def delete_string(request, string_value):
     try:
         # Case-insensitive match
-        record = StringRecord.objects.get(value__iexact=string_value)
+        record = StringRecord.objects.get(value=string_value.lower())
         record.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     except StringRecord.DoesNotExist:
