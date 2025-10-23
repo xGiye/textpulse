@@ -12,21 +12,56 @@ from .utils import analyze_string
 # POST /strings
 @api_view(['POST'])
 def create_string(request):
-    value = request.data.get("value")
-    if not isinstance(value, str):
-        return Response({"error": "Invalid or missing 'value' field"}, status=status.HTTP_400_BAD_REQUEST)
+    """
+    Create a new StringRecord with analyzed properties.
+    Handles validation, duplicate checks, and detailed responses.
+    """
+    try:
+        value = request.data.get("value")
+        print(request.data)
+        print(value)
+        # Check for missing or empty value
+        if value is None or value == "":
+            return Response(
+                {"error": "Missing 'value' field"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate that value is a string
+        if not isinstance(value, str):
+            return Response(
+                {"error": "Invalid data type for 'value' (must be a string)"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY
+            )
+
+        # Check if string already exists
+        if StringRecord.objects.filter(value=value).exists():
+            return Response(
+                {"error": "String already exists"},
+                status=status.HTTP_409_CONFLICT
+            )
+
+        # Analyze string properties
+        properties = analyze_string(value)
+
+        # Create and save record
+        record = StringRecord.objects.create(
+            value=value,
+            sha256_hash=properties.get("sha256_hash"),
+            properties=properties
+        )
+
+        # Serialize and return response
+        serializer = StringRecordSerializer(record)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        # Catch any unexpected errors
+        return Response(
+            {"error": f"Internal Server Error: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
     
-    properties = analyze_string(value)
-    if StringRecord.objects.filter(value=value).exists():
-        return Response({"error": "String already exists"}, status=status.HTTP_409_CONFLICT)
-    
-    record = StringRecord.objects.create(
-        value=value,
-        sha256_hash=properties['sha256_hash'],
-        properties=properties
-    )
-    serializer = StringRecordSerializer(record)
-    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # GET /strings/{string_value}
 @api_view(['GET'])
@@ -41,40 +76,86 @@ def get_string(request, string_value):
 # GET /strings (filters)
 @api_view(['GET'])
 def list_strings(request):
-    queryset = StringRecord.objects.all()
-    filters = {}
+    """
+    Retrieve all stored strings with optional filters:
+    - is_palindrome (true/false)
+    - min_length (int)
+    - max_length (int)
+    - word_count (int)
+    - contains_character (str)
+    """
+    try:
+        queryset = StringRecord.objects.all()
+        filters_applied = {}
 
-    is_palindrome = request.GET.get("is_palindrome")
-    min_length = request.GET.get("min_length")
-    max_length = request.GET.get("max_length")
-    word_count = request.GET.get("word_count")
-    contains_char = request.GET.get("contains_character")
+        # Extract query params
+        is_palindrome = request.GET.get("is_palindrome")
+        min_length = request.GET.get("min_length")
+        max_length = request.GET.get("max_length")
+        word_count = request.GET.get("word_count")
+        contains_char = request.GET.get("contains_character")
 
-    if is_palindrome is not None:
-        queryset = [r for r in queryset if r.properties["is_palindrome"] == (is_palindrome.lower() == "true")]
-        filters["is_palindrome"] = is_palindrome
+        # Apply filters (in memory, since properties is a JSONField)
+        filtered_records = []
+        for record in queryset:
+            props = record.properties
+            keep = True  # flag to keep the record
 
-    if min_length:
-        queryset = [r for r in queryset if r.properties["length"] >= int(min_length)]
-        filters["min_length"] = min_length
+            # Filter: palindrome
+            if is_palindrome is not None:
+                target = is_palindrome.lower() == "true"
+                if props.get("is_palindrome") != target:
+                    keep = False
+                else:
+                    filters_applied["is_palindrome"] = target
 
-    if max_length:
-        queryset = [r for r in queryset if r.properties["length"] <= int(max_length)]
-        filters["max_length"] = max_length
+            # Filter: min_length
+            if keep and min_length:
+                if props.get("length", 0) < int(min_length):
+                    keep = False
+                else:
+                    filters_applied["min_length"] = int(min_length)
 
-    if word_count:
-        queryset = [r for r in queryset if r.properties["word_count"] == int(word_count)]
-        filters["word_count"] = word_count
+            # Filter: max_length
+            if keep and max_length:
+                if props.get("length", 0) > int(max_length):
+                    keep = False
+                else:
+                    filters_applied["max_length"] = int(max_length)
 
-    if contains_char:
-        queryset = [r for r in queryset if contains_char in r.value]
-        filters["contains_character"] = contains_char
+            # Filter: word_count
+            if keep and word_count:
+                if props.get("word_count", 0) != int(word_count):
+                    keep = False
+                else:
+                    filters_applied["word_count"] = int(word_count)
 
-    return Response({
-        "data": StringRecordSerializer(queryset, many=True).data,
-        "count": len(queryset),
-        "filters_applied": filters
-    })
+            # Filter: contains_character
+            if keep and contains_char:
+                if contains_char not in record.value:
+                    keep = False
+                else:
+                    filters_applied["contains_character"] = contains_char
+
+            if keep:
+                filtered_records.append(record)
+
+        serializer = StringRecordSerializer(filtered_records, many=True)
+
+        return Response({
+            "status": "success",
+            "count": len(filtered_records),
+            "filters_applied": filters_applied,
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({
+            "status": "error",
+            "message": f"Internal Server Error: {str(e)}"
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 
 # GET /strings/filter-by-natural-language
 @api_view(['GET'])
