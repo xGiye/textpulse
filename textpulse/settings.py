@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'textpulse.wsgi.application'
 # }
 DATABASES = {
     "default": dj_database_url.config(
-        default=os.getenv('CONNECT'),
+        default=os.getenv('DATABASE_URL'),
         conn_max_age=600
     )
 }
