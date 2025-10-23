@@ -17,7 +17,7 @@ def create_string(request):
     Handles validation, duplicate checks, and detailed responses.
     """
     try:
-        value = request.data.get("value")
+        value = request.data.get("value").lower()
         print(request.data)
         print(value)
         # Check for missing or empty value
